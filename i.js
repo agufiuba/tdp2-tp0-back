@@ -1,18 +1,10 @@
 const express = require('express')
-const google = require('googleapis')
+const { google } = require('googleapis')
 
 const port = process.env.PORT || 3000
 const books = google.books('v1')
 
-function resolveAfter2Seconds() {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve('resolved');
-    }, 2000);
-  });
-}
-
-const search = async (q) => {
+const search = async q => {
   return books.volumes.list({ q })
 }
 
@@ -21,7 +13,20 @@ app.get('/api/books', async function (req, res) {
   let q = (req.query.q || "").trim()
   if (q != "") {
     try {
-      res.send(JSON.stringify(await search(q)))
+      let result = await search(q)
+      let r = {
+        totalItems: result.data.totalItems,
+        items: []
+      }
+      result.data.items.forEach(b => {
+        r.items.push({
+          name: b.volumeInfo.title,
+          authors: b.volumeInfo.authors,
+          description: b.volumeInfo.description,
+          categories: b.volumeInfo.categories
+        })
+      })
+      res.send(JSON.stringify(r))
     } catch (e) {
       res.send(e)
     }
